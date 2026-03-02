@@ -4,14 +4,29 @@ let webcontainerInstance: WebContainer | null = null;
 let currentProcess: WebContainerProcess | null = null;
 
 export async function getWebContainer() {
+  console.log("Checking crossOriginIsolated:", window.crossOriginIsolated);
+  
   if (webcontainerInstance) return webcontainerInstance;
   
+  const isChromium = !!(window as any).chrome;
+  if (!isChromium) {
+    throw new Error("WebContainers only work in Chromium-based browsers (Chrome, Edge, Brave).");
+  }
+
   if (!window.crossOriginIsolated) {
+    console.error("Cross-Origin Isolation is NOT active.");
     throw new Error("SharedArrayBuffer transfer requires self.crossOriginIsolated. Please ensure COOP/COEP headers are set or coi-serviceworker is active.");
   }
 
-  webcontainerInstance = await WebContainer.boot();
-  return webcontainerInstance;
+  console.log("Booting WebContainer...");
+  try {
+    webcontainerInstance = await WebContainer.boot();
+    console.log("WebContainer booted successfully.");
+    return webcontainerInstance;
+  } catch (error) {
+    console.error("WebContainer boot failed:", error);
+    throw error;
+  }
 }
 
 export async function mountFiles(webcontainer: WebContainer, files: Record<string, string>) {

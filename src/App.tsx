@@ -64,6 +64,11 @@ export default function App() {
   const [isIsolated, setIsIsolated] = useState(window.crossOriginIsolated);
 
   useEffect(() => {
+    const isChromium = !!(window as any).chrome;
+    if (!isChromium) {
+      addLog("⚠️ Attention : Les WebContainers fonctionnent mieux sur les navigateurs basés sur Chromium (Chrome, Edge, Brave).");
+    }
+
     const checkIsolation = () => {
       setIsIsolated(window.crossOriginIsolated);
       console.log("Cross-Origin Isolated:", window.crossOriginIsolated);
@@ -120,6 +125,9 @@ export default function App() {
       const errorMsg = error instanceof Error ? error.message : String(error);
       if (errorMsg.includes("API Key missing")) {
         setMessages(prev => [...prev, { role: 'assistant', content: "❌ Clé API manquante. Veuillez configurer votre clé Gemini dans les paramètres ou dans le panneau des secrets." }]);
+      } else if (errorMsg.includes("Chromium")) {
+        addLog(`❌ Navigateur non supporté : ${errorMsg}`);
+        addLog(`💡 Solution : Utilisez Chrome, Edge ou Brave.`);
       } else if (errorMsg.includes("SharedArrayBuffer") || errorMsg.includes("crossOriginIsolated")) {
         addLog(`❌ Erreur critique : L'isolation inter-origines est manquante.`);
         addLog(`💡 Solution : Cliquez sur "Réparer l'isolation" ci-dessous ou rechargez la page.`);
@@ -225,6 +233,8 @@ export default function App() {
       
       if (errorMsg.includes("API Key missing")) {
         setMessages(prev => [...prev, { role: 'assistant', content: "❌ Clé API manquante. \n\n**Solution :**\n1. Cliquez sur l'icône ⚙️ (Paramètres) en haut à droite et collez votre clé Gemini.\n2. OU, si vous avez déployé sur Netlify, ajoutez une variable d'environnement nommée `GEMINI_API_KEY` dans votre tableau de bord Netlify et redéployez." }]);
+      } else if (errorMsg.includes("Chromium")) {
+        setMessages(prev => [...prev, { role: 'assistant', content: "❌ Navigateur non supporté. Les WebContainers ne fonctionnent que sur Chrome, Edge ou Brave." }]);
       } else if (errorMsg.includes("SharedArrayBuffer") || errorMsg.includes("crossOriginIsolated")) {
         setMessages(prev => [...prev, { role: 'assistant', content: "❌ Erreur d'isolation inter-origines. \n\nLes WebContainers nécessitent des en-têtes de sécurité spécifiques. Cliquez sur le bouton **'Réparer l'isolation'** dans le terminal ci-dessous ou rechargez la page." }]);
         addLog(`❌ Erreur critique : L'isolation inter-origines est manquante.`);
