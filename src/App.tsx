@@ -54,6 +54,10 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('urbain_api_key') || '');
 
+  useEffect(() => {
+    localStorage.setItem('urbain_api_key', apiKey);
+  }, [apiKey]);
+
   const chatEndRef = useRef<HTMLDivElement>(null);
   const terminalEndRef = useRef<HTMLDivElement>(null);
 
@@ -130,6 +134,12 @@ export default function App() {
 
   const handleSend = async () => {
     if (!input.trim() || project.status === 'generating') return;
+
+    if (!apiKey && !process.env.GEMINI_API_KEY) {
+      setMessages(prev => [...prev, { role: 'assistant', content: "❌ Clé API manquante. Veuillez la configurer dans les paramètres (icône ⚙️) en haut à droite pour commencer." }]);
+      setShowSettings(true);
+      return;
+    }
 
     const userMsg = input;
     setInput('');
@@ -210,8 +220,17 @@ export default function App() {
       startRealBuild(updatedFiles);
     } catch (error) {
       console.error(error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
       setProject(prev => ({ ...prev, status: 'error' }));
-      setMessages(prev => [...prev, { role: 'assistant', content: "Désolé, une erreur est survenue lors de la génération. Vérifie la console pour plus de détails." }]);
+      
+      if (errorMsg.includes("API Key missing")) {
+        setMessages(prev => [...prev, { role: 'assistant', content: "❌ Clé API manquante. \n\n**Solution :**\n1. Cliquez sur l'icône ⚙️ (Paramètres) en haut à droite et collez votre clé Gemini.\n2. OU, si vous avez déployé sur Netlify, ajoutez une variable d'environnement nommée `GEMINI_API_KEY` dans votre tableau de bord Netlify et redéployez." }]);
+      } else if (errorMsg.includes("SharedArrayBuffer") || errorMsg.includes("crossOriginIsolated")) {
+        setMessages(prev => [...prev, { role: 'assistant', content: "❌ Erreur d'isolation inter-origines. \n\nLes WebContainers nécessitent des en-têtes de sécurité spécifiques. Cliquez sur le bouton **'Réparer l'isolation'** dans le terminal ci-dessous ou rechargez la page." }]);
+        addLog(`❌ Erreur critique : L'isolation inter-origines est manquante.`);
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: `Désolé, une erreur est survenue : ${errorMsg}. \n\nSi vous êtes sur Netlify, vérifiez que votre clé API est bien configurée.` }]);
+      }
     }
   };
 
@@ -342,9 +361,17 @@ export default function App() {
             </div>
 
             <div className="p-4 border-t border-white/5 space-y-2">
-              <button className="w-full p-3 hover:bg-white/5 rounded-xl flex items-center gap-3 text-sm text-white/70 transition-colors">
-                <Settings className="w-4 h-4" />
-                Paramètres
+              <button 
+                onClick={() => setShowSettings(true)}
+                className="w-full p-3 hover:bg-white/5 rounded-xl flex items-center justify-between text-sm text-white/70 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <Settings className="w-4 h-4" />
+                  Paramètres
+                </div>
+                {!apiKey && !process.env.GEMINI_API_KEY && (
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                )}
               </button>
               <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
                 <p className="text-[10px] text-emerald-400 font-bold uppercase mb-1">Plan Pro</p>
@@ -421,6 +448,15 @@ export default function App() {
               className="p-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-colors"
             >
               <Download className="w-4 h-4 text-white/80" />
+            </button>
+            <button 
+              onClick={() => setShowSettings(true)}
+              className="p-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-colors relative"
+            >
+              <Settings className="w-4 h-4 text-white/60" />
+              {!apiKey && !process.env.GEMINI_API_KEY && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0A0A0A]" />
+              )}
             </button>
             <button 
               onClick={() => {
@@ -700,17 +736,29 @@ export default function App() {
                   type="password"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="AIzaSy..."
+                  placeholder={process.env.GEMINI_API_KEY ? "Clé configurée via Netlify (cachée)" : "AIzaSy..."}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500/50 transition-colors"
                 />
               </div>
+              <p className="text-[10px] text-white/30 italic">La clé est sauvegardée localement dans votre navigateur.</p>
             </div>
             <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-4 flex gap-3">
               <Globe className="w-5 h-5 text-emerald-500 shrink-0" />
-              <p className="text-xs text-emerald-500/80 leading-relaxed">
-                Vous pouvez obtenir une clé gratuite sur <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="underline font-bold">Google AI Studio</a>.
-              </p>
+              <div className="space-y-1">
+                <p className="text-xs text-emerald-500/80 leading-relaxed">
+                  Obtenez une clé gratuite sur <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="underline font-bold">Google AI Studio</a>.
+                </p>
+                <p className="text-[10px] text-white/40">
+                  Sur Netlify : Ajoutez <code className="bg-white/5 px-1 rounded">GEMINI_API_KEY</code> dans vos variables d'environnement.
+                </p>
+              </div>
             </div>
+            <button 
+              onClick={() => setShowSettings(false)}
+              className="w-full py-3 bg-emerald-500 text-black rounded-xl font-bold text-sm hover:bg-emerald-400 transition-colors"
+            >
+              Enregistrer et Fermer
+            </button>
           </div>
           <div className="p-6 bg-white/5 flex gap-3">
             <button 
