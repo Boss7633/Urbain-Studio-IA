@@ -1,0 +1,9 @@
+{
+  "name": "Urbain Studio AI",
+  "description": "Une plateforme IA de génération de sites web en temps réel avec WebContainer et Gemini.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
