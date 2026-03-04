@@ -6,7 +6,7 @@ export const generateProjectStream = async (
   currentFiles: Record<string, string> = {}, 
   customApiKey?: string
 ) => {
-  const model = "gemini-3.1-pro-preview";
+  const model = "gemini-3-flash-preview";
   const apiKey = customApiKey || process.env.GEMINI_API_KEY || '';
   
   if (!apiKey) {

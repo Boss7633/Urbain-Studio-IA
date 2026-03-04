@@ -233,6 +233,8 @@ export default function App() {
       
       if (errorMsg.includes("API Key missing")) {
         setMessages(prev => [...prev, { role: 'assistant', content: "❌ Clé API manquante. \n\n**Solution :**\n1. Cliquez sur l'icône ⚙️ (Paramètres) en haut à droite et collez votre clé Gemini.\n2. OU, si vous avez déployé sur Netlify, ajoutez une variable d'environnement nommée `GEMINI_API_KEY` dans votre tableau de bord Netlify et redéployez." }]);
+      } else if (errorMsg.includes("429") || errorMsg.includes("quota") || errorMsg.includes("RESOURCE_EXHAUSTED")) {
+        setMessages(prev => [...prev, { role: 'assistant', content: "⚠️ **Quota dépassé (Erreur 429)**. \n\nVous utilisez la version gratuite de l'API Gemini et avez atteint la limite de requêtes. \n\n**Solutions :**\n1. Attendez environ 60 secondes avant de réessayer.\n2. Utilisez votre propre clé API dans les paramètres pour plus de stabilité." }]);
       } else if (errorMsg.includes("Chromium")) {
         setMessages(prev => [...prev, { role: 'assistant', content: "❌ Navigateur non supporté. Les WebContainers ne fonctionnent que sur Chrome, Edge ou Brave." }]);
       } else if (errorMsg.includes("SharedArrayBuffer") || errorMsg.includes("crossOriginIsolated")) {
@@ -563,7 +565,7 @@ export default function App() {
                   <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
                   WebContainer Ready
                 </div>
-                <span>Gemini 3.1 Pro</span>
+                <span>Gemini 3 Flash</span>
               </div>
             </div>
           </div>
